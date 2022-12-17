@@ -1,55 +1,49 @@
 void setup() {
-  // Interrupt pin: used for triggering the conversion.
-  // Feed the maximum of all phototransistor voltages here;
+  Serial.begin(115200);
+  // Interrupt pins: used for triggering the conversion.
 	pinMode(2, INPUT);
-  // Auxillary pin for measuring how long the total
-  // conversion sequence lasts. 
-  pinMode(3, OUTPUT);
-  // Inputs
-  pinMode(4, INPUT);
-  pinMode(5, INPUT);
-  pinMode(6, INPUT);
-  pinMode(7, INPUT);
+  pinMode(3, INPUT);
+  // For blinking th eled
+  pinMode(13, OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(2), trigger, RISING);
+  attachInterrupt(digitalPinToInterrupt(2), trigger1, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(3), trigger2, CHANGE);
+
 }
 
-unsigned int samples = 0;
-unsigned const int SAMPLES_TO_TAKE = 3000; // experimentally change this later
+unsigned long value1 = 0;
+unsigned long beg1 = 0;
+unsigned long value2 = 0;
+unsigned long beg2 = 0;
 
-unsigned long times[4];
-
-void trigger() { 
-  if (samples == 0) // ignore non-single triggers
-    samples = SAMPLES_TO_TAKE;
+void trigger1() {
+  if (digitalRead(2) == 0) {
+    value1 = micros() - beg1;
+    digitalWrite(13, LOW);
+  } else {
+    beg1 = micros();
+    digitalWrite(13, HIGH);
+  }
 }
-
-void eoc() {
-  // control servos, send stuff over to pc, etc...
+void trigger2() {
+  if (digitalRead(3) == 0) {
+    value2 = micros() - beg2;
+    digitalWrite(13, LOW);
+  } else {
+    beg2 = micros();
+    digitalWrite(13, HIGH);
+  }
 }
-
 
 void loop() {
-  times[0] = 0;
-  times[1] = 0;
-  times[2] = 0;
-  times[3] = 0;
-
-  if (samples > 0) {
-    // PORTD holds 
-    // the state of digital pins 0-7.
-
-    PORTD |= (1 << 3); // Write HIGH to pin 3 
-    while(samples-- > 0) {
-      // for each pin, extract the corresponding 
-      // bit and add it to the correct counter.
-      int pd = PORTD;
-      times[0] += (pd & (1 << 4)) >> 4;
-      times[1] += (pd & (1 << 5)) >> 5;
-      times[2] += (pd & (1 << 6)) >> 6;
-      times[3] += (pd & (1 << 7)) >> 7;
-    }
-    PORTD &= (1 << 3); // Write LOW to pin 3 
-    eoc();
+  if (value1 != 0) {
+    Serial.print("1 ");
+    Serial.println(value1);
+    value1 = 0;
+  }
+  if (value2 != 0) {
+    Serial.print("2 ");
+    Serial.println(value2);
+    value2 = 0;
   }
 }
